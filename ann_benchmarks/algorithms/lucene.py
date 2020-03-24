@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import array, sys
 import numpy
 import sklearn.neighbors
 import sklearn.preprocessing
@@ -36,12 +37,15 @@ class LuceneCluster(BaseANN):
         self.gateway.entry_point.mergeAndCommit()
         self.gateway.entry_point.openReader()
 
-    def query(self, v, n):
+    def batch_query(self, X, n):
         if self._metric == 'angular':
-            v = sklearn.preprocessing.normalize([v], axis=1, norm='l2')[0]
+            X = sklearn.preprocessing.normalize(X, axis=1, norm='l2')
 
-        query_vector = self.prepare_vector(v)
-        return self.gateway.entry_point.search(query_vector, n, self.n_probes)
+        query_vectors = self.prepare_vectors(X)
+        self.res = self.gateway.entry_point.search(query_vectors, n, self.n_probes)
+
+    def get_batch_results(self):
+        return self.res
 
     def set_query_arguments(self, n_probes):
         self.n_probes = n_probes
@@ -50,8 +54,9 @@ class LuceneCluster(BaseANN):
         return 'LuceneCluster(n_probes={})'.format(self.n_probes)
 
     def prepare_vectors(self, vectors):
-        converted_vectors = [self.prepare_vector(v) for v in vectors]
-        return ListConverter().convert(converted_vectors, self.gateway._gateway_client)
-
-    def prepare_vector(self, vector):
-        return ListConverter().convert(vector.tolist(), self.gateway._gateway_client)
+        header = array.array('i', list(vectors.shape))
+        body = array.array('f', vectors.flatten().tolist());
+        if sys.byteorder != 'big':
+            header.byteswap()
+            body.byteswap()
+        return bytearray(header.tostring() + body.tostring())
