@@ -59,6 +59,15 @@ float:
           arg-groups:
             - {"M": 16,  "efConstruction": 500}
           query-args: [[10, 50, 100, 500, 800]]
+    hnsw-lucene:
+      docker-tag: ann-benchmarks-sklearn
+      module: ann_benchmarks.algorithms.lucene
+      constructor: LuceneHnsw
+      base-args: ["@metric"]
+      run-groups:
+        base:
+          args: []
+          query-args: [[10, 50, 100, 500, 800]]
 
     hnsw(faiss):
      docker-tag: ann-benchmarks-faiss
